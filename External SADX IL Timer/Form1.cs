@@ -112,7 +112,6 @@ namespace External_SADX_IL_Timer
                             currentFrames = 0;
                         }
 
-
                         if (currentFrames == 60)
                         {
                             if (is3digit) tempFramesText = "000";
@@ -122,7 +121,6 @@ namespace External_SADX_IL_Timer
                         {
                             tempFramesText = Math.Floor(currentFrames * ((1000.0 / offset3digits) / 60.0)).ToString();
                         }
-
                     }
 
                     tempSecondText = currentSeconds.ToString();
@@ -197,6 +195,8 @@ namespace External_SADX_IL_Timer
 
         private void resizeLabels()
         {
+            if (ILTimer.ActiveForm.WindowState == FormWindowState.Minimized) return;
+
             int labelHeight = (int)(((ILTimer.ActiveForm.Size.Height - 39) / 2.0) - (49 / 2.0));
 
             int totalLength = minutesLabel.Size.Width + secondsLabel.Size.Width + framesLabel.Size.Width + 66;
@@ -213,9 +213,6 @@ namespace External_SADX_IL_Timer
         private void ILTimer_Resize(object sender, System.EventArgs e)
         {
             Control control = (Control)sender;
-
-            // Ensure the Form remains in ratio (16 : 9).
-            control.Size = new Size(control.Size.Width, (int)Math.Floor((control.Size.Width / 16.0) * 9));
 
             resizeLabels();
         }
