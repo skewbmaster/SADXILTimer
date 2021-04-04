@@ -8,12 +8,15 @@ namespace External_SADX_IL_Timer
 {
     static class Program
     {
+        public static ILTimer MainForm;
+
         [STAThread]
         static void Main()
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new ILTimer());
+            MainForm = new ILTimer();
+            Application.Run(MainForm);
         }
     }
 }

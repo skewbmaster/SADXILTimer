@@ -28,31 +28,31 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.timerLabel = new System.Windows.Forms.Label();
+            timerLabel = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // timerLabel
             // 
-            this.timerLabel.AutoSize = true;
-            this.timerLabel.Font = new System.Drawing.Font("Calibri", 30F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.timerLabel.Location = new System.Drawing.Point(50, 43);
-            this.timerLabel.Margin = new System.Windows.Forms.Padding(0);
-            this.timerLabel.Name = "timerLabel";
-            this.timerLabel.Size = new System.Drawing.Size(200, 49);
-            this.timerLabel.TabIndex = 0;
-            this.timerLabel.Text = "99 : 59 . 99";
-            this.timerLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            timerLabel.AutoSize = true;
+            timerLabel.Font = new System.Drawing.Font("Calibri", 30F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            timerLabel.Location = new System.Drawing.Point(50, 43);
+            timerLabel.Margin = new System.Windows.Forms.Padding(0);
+            timerLabel.Name = "timerLabel";
+            timerLabel.Size = new System.Drawing.Size(200, 49);
+            timerLabel.TabIndex = 0;
+            timerLabel.Text = "99 : 59 . 99";
+            timerLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // ILTimer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 18F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(304, 141);
-            this.Controls.Add(this.timerLabel);
+            this.Controls.Add(timerLabel);
             this.Font = new System.Drawing.Font("Calibri", 11F);
             this.Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
             this.MaximizeBox = false;
-            this.MaximumSize = new System.Drawing.Size(320, 180);
+            this.MaximumSize = new System.Drawing.Size(640, 360);
             this.MinimumSize = new System.Drawing.Size(255, 135);
             this.Name = "ILTimer";
             this.ShowIcon = false;
@@ -65,7 +65,7 @@
 
         #endregion
 
-        private System.Windows.Forms.Label timerLabel;
+        public static System.Windows.Forms.Label timerLabel;
     }
 }
 

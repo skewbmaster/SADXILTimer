@@ -34,7 +34,9 @@ namespace External_SADX_IL_Timer
         {
             InitializeComponent();
 
-            Activated += (o,e) => InitialSetup();
+            FormClosing += (o, e) => Settings.SaveSettings();
+
+            HandleCreated += (o, e) => InitialSetup();
 
             EventHandler settings = new EventHandler(Msettings);
 
@@ -48,13 +50,14 @@ namespace External_SADX_IL_Timer
             ContextMenu = context;
         }
 
-
         int currentFrames, oldFrames;
         int currentSeconds = 0, currentMinutes = 0, currentGameState, currentCharacter;
         string tempFramesText = "00", tempSecondText = "00", tempMinuteText = "00";
 
         private void InitialSetup()
         {
+            Settings.LoadSettings();
+
             Task hookTask = Task.Run(() => 
             { 
                 Hook();
@@ -64,6 +67,7 @@ namespace External_SADX_IL_Timer
 
                 backgroundTimer.Tick += backgroundTiming_DoWork;
             });
+
             resizeLabels();
         }
 
@@ -159,7 +163,7 @@ namespace External_SADX_IL_Timer
             gameHooked = false;
         }
 
-        private void resizeLabels()
+        public void resizeLabels()
         {
             if (WindowState == FormWindowState.Minimized) return;
 
@@ -181,6 +185,13 @@ namespace External_SADX_IL_Timer
             {
                 return;
             }
+
+            new Thread(() =>
+            {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new Settings());
+            }).Start();
         }
 
         public void MdigitSetting(object sender, EventArgs e)
