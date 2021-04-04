@@ -15,7 +15,5 @@ namespace External_SADX_IL_Timer
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new ILTimer());
         }
-
-
     }
 }

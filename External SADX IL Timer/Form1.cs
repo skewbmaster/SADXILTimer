@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Timer = System.Windows.Forms.Timer;
 
 namespace External_SADX_IL_Timer
 {
@@ -21,146 +22,111 @@ namespace External_SADX_IL_Timer
         public static bool is3digit = false;
 
         public static bool isSettingsOpened = false;
-        public static MenuItem startupUpdatesCheck;
+        public static MenuItem digitSetting;
+
+        public Timer backgroundTimer = new Timer()
+        {
+            Enabled = true,
+            Interval = 5
+        };
 
         public ILTimer()
         {
             InitializeComponent();
 
-            backgroundTiming.RunWorkerAsync();
+            Activated += (o,e) => InitialSetup();
 
             EventHandler settings = new EventHandler(Msettings);
 
-            startupUpdatesCheck = new MenuItem("3 Digit MS", new EventHandler(MstartupUpdatesCheck));
+            digitSetting = new MenuItem("3 Digit MS", new EventHandler(MdigitSetting));
             //startupUpdatesCheck.Checked = UserSettings.Default.UpdateCheckAtStartup;
 
             ContextMenu context = new ContextMenu();
             context.MenuItems.Add("Settings", settings);
             context.MenuItems.Add("-");
-            context.MenuItems.Add(startupUpdatesCheck);
+            context.MenuItems.Add(digitSetting);
             ContextMenu = context;
         }
 
-        private void backgroundTiming_DoWork(object sender, DoWorkEventArgs e)
+
+        int currentFrames, oldFrames;
+        int currentSeconds = 0, currentMinutes = 0, currentGameState, currentCharacter;
+        string tempFramesText = "00", tempSecondText = "00", tempMinuteText = "00";
+
+        private void InitialSetup()
         {
-            int currentFrames, oldFrames;
-            int currentSeconds = 0, currentMinutes = 0, currentGameState, currentCharacter;
-
-            string tempFramesText = "00", tempSecondText = "00", tempMinuteText = "00";
-
-            double offset3digits;
-
-            Hook();
-
-            currentFrames = ProcessMemory.ReadByte(gameProc, baseAddress + 0x0370EF35);
-            oldFrames = currentFrames;
-
-            resizeLabels();
-
-            while (true)
-            {
-                while (gameHooked)
-                {
-                    currentFrames = ProcessMemory.ReadByte(gameProc, baseAddress + 0x0370EF35);
-                    currentGameState = ProcessMemory.ReadByte(gameProc, baseAddress + 0x03722DE4);
-                    currentCharacter = ProcessMemory.ReadByte(gameProc, baseAddress + 0x03722DC0);
-
-                    offset3digits = is3digit == true ? 1.0 : 10.0;
-
-
-                    if (currentCharacter == 6) // If you're using Gamma
-                    {
-                        if (currentGameState == 3 || currentGameState == 4 || currentGameState == 6 || currentGameState == 7 || currentGameState == 21)
-                        {
-                            currentMinutes = 0;
-                            currentSeconds = -1;
-                            currentFrames = 60;
-                            oldFrames = 60;
-                        }
-
-                        if (currentFrames > oldFrames)
-                        {
-                            currentSeconds += 1;
-                        }
-
-                        if (currentSeconds == 60)
-                        {
-                            currentMinutes += 1;
-                            currentSeconds = 0;
-                        }
-
-                        if (currentFrames == 0)
-                        {
-                            if (is3digit) tempFramesText = "000";
-                            else tempFramesText = "00";
-                        }
-                        else
-                        {
-                            tempFramesText = Math.Floor((60 - currentFrames) * ((1000.0 / offset3digits) / 60.0)).ToString();
-                        }
-                    }
-
-                    else // Any other character that counts up
-                    {
-                        currentMinutes = ProcessMemory.ReadByte(gameProc, baseAddress + 0x0370EF48);
-                        currentSeconds = ProcessMemory.ReadByte(gameProc, baseAddress + 0x0370F128);
-
-                        if (currentGameState == 21)
-                        {
-                            currentMinutes = 0;
-                            currentSeconds = 0;
-                            currentFrames = 0;
-                        }
-
-                        if (currentFrames == 60)
-                        {
-                            if (is3digit) tempFramesText = "000";
-                            else tempFramesText = "00";
-                        }
-                        else
-                        {
-                            tempFramesText = Math.Floor(currentFrames * ((1000.0 / offset3digits) / 60.0)).ToString();
-                        }
-                    }
-
-                    tempSecondText = currentSeconds.ToString();
-                    tempMinuteText = currentMinutes.ToString();
-
-                    if (is3digit)
-                    {
-                        if (tempFramesText.Length == 1)
-                        {
-                            tempFramesText = "00" + tempFramesText;
-                        }
-                        else if (tempFramesText.Length == 2)
-                        {
-                            tempFramesText = "0" + tempFramesText;
-                        }
-                    }
-                    else if (tempFramesText.Length == 1)
-                    {
-                        tempFramesText = "0" + tempFramesText;
-                    }
-
-                    if (tempSecondText.Length == 1)
-                    {
-                        tempSecondText = "0" + tempSecondText;
-                    }
-                    else if (currentSeconds < 0)
-                    {
-                        tempSecondText = "00";
-                    }
-
-                    framesLabel.Text = tempFramesText;
-                    secondsLabel.Text = tempSecondText;
-                    minutesLabel.Text = tempMinuteText;
-
-                    oldFrames = currentFrames;
-
-                    Thread.Sleep(5);
-                }
-
+            Task hookTask = Task.Run(() => 
+            { 
                 Hook();
+
+                currentFrames = ProcessMemory.ReadByte(gameProc, baseAddress + 0x0370EF35);
+                oldFrames = currentFrames;
+
+                backgroundTimer.Tick += backgroundTiming_DoWork;
+            });
+            resizeLabels();
+        }
+
+        private void backgroundTiming_DoWork(object sender, EventArgs e)
+        {
+            if (gameHooked)
+            {
+                currentFrames = ProcessMemory.ReadByte(gameProc, baseAddress + 0x0370EF35);
+                currentGameState = ProcessMemory.ReadByte(gameProc, baseAddress + 0x03722DE4);
+                currentCharacter = ProcessMemory.ReadByte(gameProc, baseAddress + 0x03722DC0);
+
+                if (currentCharacter == 6) // If you're using Gamma
+                {
+                    if (currentGameState == 3 || currentGameState == 4 || currentGameState == 6 || currentGameState == 7 || currentGameState == 21)
+                    {
+                        currentMinutes = 0;
+                        currentSeconds = -1;
+                        currentFrames = 60;
+                        oldFrames = 60;
+                    }
+
+                    if (currentFrames > oldFrames)
+                    {
+                        currentSeconds += 1;
+                    }
+
+                    if (currentSeconds == 60)
+                    {
+                        currentMinutes += 1;
+                        currentSeconds = 0;
+                    }
+
+                    tempFramesText = ((int)Math.Floor((60 - currentFrames) * (1000.0 / 60.0))).ToString("D3");
+                }
+                else // Any other character that counts up
+                {
+                    currentMinutes = ProcessMemory.ReadByte(gameProc, baseAddress + 0x0370EF48);
+                    currentSeconds = ProcessMemory.ReadByte(gameProc, baseAddress + 0x0370F128);
+
+                    if (currentGameState == 21)
+                    {
+                        currentMinutes = 0;
+                        currentSeconds = 0;
+                        currentFrames = 0;
+                    }
+
+                    tempFramesText = ((int)Math.Floor(currentFrames * (1000.0 / 60.0))).ToString("D3");
+                }
+                
+                tempSecondText = currentSeconds > 0 ? currentSeconds.ToString("D2") : "00";
+                tempMinuteText = currentMinutes.ToString("D2");
+
+                if(!is3digit)
+                {
+                    tempFramesText = tempFramesText.Remove(2);
+                }
+                timerLabel.Text = $"{tempMinuteText} : {tempSecondText} . {tempFramesText}";
+
+                oldFrames = currentFrames;
+            }
+            else
+            {
+                Task.Run(Hook);
             }
         }
 
@@ -181,8 +147,8 @@ namespace External_SADX_IL_Timer
 
                 gameProc.Exited += GameProc_Exited;
                 gameProc.EnableRaisingEvents = true;
-                gameHooked = true;
                 baseAddress = gameProc.MainModule.BaseAddress.ToInt32();
+                gameHooked = true;
                 return true;
             }
         }
@@ -195,25 +161,17 @@ namespace External_SADX_IL_Timer
 
         private void resizeLabels()
         {
-            if (ILTimer.ActiveForm.WindowState == FormWindowState.Minimized) return;
+            if (WindowState == FormWindowState.Minimized) return;
 
-            int labelHeight = (int)(((ILTimer.ActiveForm.Size.Height - 39) / 2.0) - (49 / 2.0));
+            int labelHeight = (int)(((Size.Height - 39) / 2.0) - (49 / 2.0));
 
-            int totalLength = minutesLabel.Size.Width + secondsLabel.Size.Width + framesLabel.Size.Width + 66;
+            int labelStarts = (int)((Size.Width / 2.0) - (timerLabel.Width / 2.0));
 
-            int labelStarts = (int)((ILTimer.ActiveForm.Size.Width / 2.0) - (totalLength / 2.0));
-
-            minutesLabel.Location = new Point(labelStarts, labelHeight);
-            separator1.Location = new Point(labelStarts + minutesLabel.Size.Width - 3, labelHeight);
-            secondsLabel.Location = new Point(labelStarts + minutesLabel.Size.Width + 28, labelHeight);
-            separator2.Location = new Point(labelStarts + minutesLabel.Size.Width + secondsLabel.Size.Width + 20, labelHeight);
-            framesLabel.Location = new Point(labelStarts + minutesLabel.Size.Width + secondsLabel.Size.Width + 50, labelHeight);
+            timerLabel.Location = new Point(labelStarts, labelHeight);
         }
 
-        private void ILTimer_Resize(object sender, System.EventArgs e)
+        private void ILTimer_Resize(object sender, EventArgs e)
         {
-            Control control = (Control)sender;
-
             resizeLabels();
         }
 
@@ -225,18 +183,18 @@ namespace External_SADX_IL_Timer
             }
         }
 
-        public void MstartupUpdatesCheck(object sender, EventArgs e)
+        public void MdigitSetting(object sender, EventArgs e)
         {
-            startupUpdatesCheck.Checked = startupUpdatesCheck.Checked == true ? false : true;
-            is3digit = startupUpdatesCheck.Checked;
+            digitSetting.Checked = !digitSetting.Checked;
+            is3digit = digitSetting.Checked;
 
             if (is3digit)
             {
-                framesLabel.Text = "000";
-            } 
+                timerLabel.Text = "99 : 59 . 999";
+            }
             else
             {
-                framesLabel.Text = "00";
+                timerLabel.Text = "99 : 59 . 99";
             }
 
             resizeLabels();
