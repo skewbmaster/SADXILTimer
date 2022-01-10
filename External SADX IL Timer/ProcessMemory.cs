@@ -2,6 +2,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace External_SADX_IL_Timer
@@ -24,6 +25,14 @@ namespace External_SADX_IL_Timer
             }
 
             return new IntPtr(tempValue + offsets[offsets.Length - 1]);
+        }
+
+        public static IntPtr GetModuleBaseAddress(this Process process, string moduleName)
+        {
+            ProcessModule module = process.Modules.Cast<ProcessModule>().SingleOrDefault(m =>
+                string.Equals(m.ModuleName, moduleName, StringComparison.OrdinalIgnoreCase));
+            
+            return module?.BaseAddress ?? IntPtr.Zero;
         }
 
         public static byte[] ReadBytes(this Process process, IntPtr address, int size)

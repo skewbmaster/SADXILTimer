@@ -56,7 +56,7 @@ namespace External_SADX_IL_Timer
                 Program.MainForm.Invoke(new Action(() => 
                 {
                     ILTimer.timerLabel.Font = FontSelectionD.Font;
-                    Program.MainForm.resizeLabels();
+                    Program.MainForm.ResizeLabels();
                 }));
             }
         }
