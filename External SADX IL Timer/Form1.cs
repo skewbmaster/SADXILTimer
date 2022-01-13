@@ -17,7 +17,7 @@ namespace External_SADX_IL_Timer
         
         private static Process gameProc = new Process();
         private static bool gameHooked = false;
-        
+        private static bool hooking = false;
 
         private static bool isSpeedrunMod = false;
         private static IntPtr speedrunModMemory;
@@ -181,7 +181,11 @@ namespace External_SADX_IL_Timer
             }
             else
             {
-                Task.Run(Hook);
+                if (!hooking)
+                {
+                    Task.Run(Hook);
+                    hooking = true;
+                }
             }
         }
         #endregion
@@ -204,7 +208,8 @@ namespace External_SADX_IL_Timer
                 gameProc.Exited += GameProc_Exited;
                 gameProc.EnableRaisingEvents = true;
                 gameHooked = true;
-
+                hooking = false;
+                
 
                 if (gameProc.GetModuleBaseAddress("sadx-speedrun-mod.dll") != IntPtr.Zero)
                 {
