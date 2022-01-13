@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -15,17 +11,19 @@ namespace External_SADX_IL_Timer
 {
     public partial class ILTimer : Form
     {
-        private static bool isSpeedrunMod = false;
+        private static bool is3digit = false;
+        private static bool isSettingsOpened = false;
+        private static MenuItem digitSetting;
         
         private static Process gameProc = new Process();
         private static bool gameHooked = false;
+        
 
-        private static IntPtr moduleAddress;
-
-        private static bool is3digit = false;
-
-        private static bool isSettingsOpened = false;
-        private static MenuItem digitSetting;
+        private static bool isSpeedrunMod = false;
+        private static IntPtr speedrunModMemory;
+        private static IntPtr gammaFramesAddress;
+        private static IntPtr gammaSecondsAddress;
+        private static IntPtr gammaMinutesAddress;
 
         private Timer backgroundTimer = new Timer()
         {
@@ -61,7 +59,7 @@ namespace External_SADX_IL_Timer
         {
             Settings.LoadSettings();
 
-            Task hookTask = Task.Run(() => 
+            Task.Run(() => 
             { 
                 Hook();
 
@@ -74,15 +72,23 @@ namespace External_SADX_IL_Timer
             ResizeLabels();
         }
 
+        #region TimingLogic
         private void backgroundTiming_DoWork(object sender, EventArgs e)
         {
             if (gameHooked)
             {
                 if (isSpeedrunMod)
                 {
-                    currentFrames = gameProc.ReadByte(moduleAddress + 0xD7AD);
-                    currentSeconds = gameProc.ReadByte(moduleAddress + 0xD7AE);
-                    currentMinutes = gameProc.ReadByte(moduleAddress + 0xD7AF);
+                    try
+                    {
+                        currentFrames = gameProc.ReadByte(gammaFramesAddress);
+                        currentSeconds = gameProc.ReadByte(gammaSecondsAddress);
+                        currentMinutes = gameProc.ReadByte(gammaMinutesAddress);
+                    }
+                    catch
+                    {
+                        return;
+                    }
 
                     if (currentFrames == 60)
                     {
@@ -95,9 +101,16 @@ namespace External_SADX_IL_Timer
                 }
                 else
                 {
-                    currentFrames = gameProc.ReadByte(0x03B0EF35);
-                    currentGameState = gameProc.ReadByte(0x03B22DE4);
-                    currentCharacter = gameProc.ReadByte(0x03B22DC0);
+                    try
+                    {
+                        currentFrames = gameProc.ReadByte(0x03B0EF35);
+                        currentGameState = gameProc.ReadByte(0x03B22DE4);
+                        currentCharacter = gameProc.ReadByte(0x03B22DC0);
+                    }
+                    catch
+                    {
+                        return;
+                    }
 
                     if (currentCharacter == 6) // If you're using Gamma
                     {
@@ -112,22 +125,37 @@ namespace External_SADX_IL_Timer
 
                         if (currentFrames > oldFrames)
                         {
-                            currentSeconds += 1;
+                            currentSeconds++;
                         }
 
-                        if (currentSeconds == 60)
+                        if (currentSeconds >= 60)
                         {
-                            currentMinutes += 1;
-                            currentSeconds = 0;
+                            currentMinutes++;
+                            currentSeconds -= 60;
                         }
 
-                        tempFramesText = ((int) Math.Floor((60 - currentFrames) * (1000.0 / 60.0))).ToString("D3");
+                        if (currentFrames == 0)
+                        {
+                            tempFramesText = "000";
+                        }
+                        else
+                        {
+                            tempFramesText = ((int) Math.Floor((60 - currentFrames) * (1000.0 / 60.0))).ToString("D3");
+                        }
                     }
+                    
                     else // Any other character that counts up
                     {
-                        currentMinutes = gameProc.ReadByte(0x03B0EF48);
-                        currentSeconds = gameProc.ReadByte(0x03B0F128);
-
+                        try
+                        {
+                            currentMinutes = gameProc.ReadByte(0x03B0EF48);
+                            currentSeconds = gameProc.ReadByte(0x03B0F128);
+                        }
+                        catch
+                        {
+                            return;
+                        }
+                        
                         if (currentGameState == 21)
                         {
                             currentMinutes = 0;
@@ -156,7 +184,8 @@ namespace External_SADX_IL_Timer
                 Task.Run(Hook);
             }
         }
-
+        #endregion
+        
         private static bool Hook()
         {
             while (true)
@@ -176,14 +205,22 @@ namespace External_SADX_IL_Timer
                 gameProc.EnableRaisingEvents = true;
                 gameHooked = true;
 
-                moduleAddress = gameProc.GetModuleBaseAddress("sadx-speedrun-mod.dll");
 
-                if (moduleAddress != IntPtr.Zero)
+                if (gameProc.GetModuleBaseAddress("sadx-speedrun-mod.dll") != IntPtr.Zero)
                 {
                     isSpeedrunMod = true;
                     Console.WriteLine("Speedrun Mod Active");
+
+                    speedrunModMemory = new IntPtr(gameProc.ReadInt32(0x426028));
+
+                    gammaFramesAddress = new IntPtr(gameProc.ReadInt32(speedrunModMemory));
+                    gammaSecondsAddress = new IntPtr(gameProc.ReadInt32(speedrunModMemory + 0x4));
+                    gammaMinutesAddress = new IntPtr(gameProc.ReadInt32(speedrunModMemory + 0x8));
+                    
+                    return true;
                 }
-                
+
+                isSpeedrunMod = false;
                 return true;
             }
         }
@@ -194,6 +231,7 @@ namespace External_SADX_IL_Timer
             gameHooked = false;
         }
 
+        #region FormsShit
         public void ResizeLabels()
         {
             if (WindowState == FormWindowState.Minimized) return;
@@ -241,5 +279,6 @@ namespace External_SADX_IL_Timer
 
             ResizeLabels();
         }
+        #endregion
     }
 }

@@ -14,6 +14,7 @@ namespace External_SADX_IL_Timer
 
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, uint nSize, out UIntPtr lpNumberOfBytesWritten);
+        
 
         public static IntPtr GetFinalAddress(this Process process, int baseAddress, params int[] offsets)
         {
@@ -42,6 +43,19 @@ namespace External_SADX_IL_Timer
             ReadProcessMemory(process.Handle, address, buf, size, out bytesread);
             if (bytesread != size) throw new InvalidOperationException();
             return buf;
+        }
+        
+        public struct MemoryBasicInformation
+        {
+            public static UInt32 Size = (UInt32)Marshal.SizeOf(typeof(MemoryBasicInformation));
+
+            public IntPtr BaseAddress;
+            public IntPtr AllocationBase;
+            public uint AllocationProtect;
+            public int RegionSize;
+            public uint State;
+            public uint Protect;
+            public uint lType;
         }
 
         public static byte[] ReadBytes(this Process process, int address, int size) { return ReadBytes(process, new IntPtr(address), size); }
